@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>공지사항 게시판</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../../assets/css/board.css">
+</head>
+<body>
+    <header class="bg-primary text-white text-center py-4">
+        <h1>공지사항 게시판</h1>
+        <p>최신 공지사항을 확인하세요</p>
+    </header>
+
+    <div class="container my-5">
+        <!-- 새 공지사항 등록 및 나가기 버튼 -->
+        <div class="mb-4 text-right">
+            <button class="btn btn-primary" data-toggle="modal" data-target="#addNoticeModal">새 공지사항 등록</button>
+            <button class="btn btn-danger" onclick="window.location.href='/index.html';">나가기</button>
+        </div>
+
+        <!-- 검색 및 필터 -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" class="form-control" id="search" placeholder="검색">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" type="button" id="search-button">검색</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 text-md-right">
+                <select class="form-control" id="filter">
+                    <option value="">필터</option>
+                    <option value="category1">카테고리 1</option>
+                    <option value="category2">카테고리 2</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 공지사항 리스트 -->
+        <div id="notice-list" class="list-group">
+            <!-- 공지사항 항목이 여기에 추가됩니다. -->
+        </div>
+
+        <!-- 페이지 네비게이션 -->
+        <nav aria-label="Page navigation">
+            <ul class="pagination justify-content-center mt-4" id="pagination">
+                <!-- 페이지 버튼이 여기에 추가됩니다. -->
+            </ul>
+        </nav>
+    </div>
+
+    <!-- 새 공지사항 등록 모달 -->
+    <div class="modal fade" id="addNoticeModal" tabindex="-1" role="dialog" aria-labelledby="addNoticeModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addNoticeModalLabel">새 공지사항 등록</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="notice-form">
+                        <div class="form-group">
+                            <label for="notice-title">제목</label>
+                            <input type="text" class="form-control" id="notice-title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="notice-date">날짜</label>
+                            <input type="date" class="form-control" id="notice-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="notice-content">내용</label>
+                            <textarea class="form-control" id="notice-content" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">등록</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 공지사항 수정 모달 -->
+    <div class="modal fade" id="editNoticeModal" tabindex="-1" role="dialog" aria-labelledby="editNoticeModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editNoticeModalLabel">공지사항 수정</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-notice-form">
+                        <input type="hidden" id="edit-index">
+                        <div class="form-group">
+                            <label for="edit-notice-title">제목</label>
+                            <input type="text" class="form-control" id="edit-notice-title" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-notice-date">날짜</label>
+                            <input type="date" class="form-control" id="edit-notice-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-notice-content">내용</label>
+                            <textarea class="form-control" id="edit-notice-content" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">수정</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 공지사항 삭제 확인 모달 -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">삭제 확인</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>정말로 이 공지사항을 삭제하시겠습니까?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="../../assets/js/announce.js"></script>
+</body>
+</html>

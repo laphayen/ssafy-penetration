@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>집싸피</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+        }
+
+        #sidebar {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            bottom: 20px;
+            width: 450px; /* Increase sidebar width */
+            background-color: rgba(255, 255, 255, 0.8);
+            color: black;
+            padding: 15px;
+            z-index: 2;
+            border-radius: 8px;
+            overflow-y: auto;
+        }
+
+        .tab-content {
+            margin-top: 20px;
+        }
+
+        #search-results, #selection-results {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+
+        #selection-results .table {
+            font-size: 12px;
+        }
+
+        #selection-results .table th:nth-child(1),
+        #selection-results .table td:nth-child(1) {
+            width: 200px;
+        }
+
+        #selection-results .table th:nth-child(2),
+        #selection-results .table td:nth-child(2) {
+            width: 70px;
+        }
+
+        #selection-results .table th:nth-child(3),
+        #selection-results .table td:nth-child(3) {
+            width: 70px;
+        }
+
+        #selection-results .table th:nth-child(4),
+        #selection-results .table td:nth-child(4) {
+            width: 100px; /* Increase width for 법정동 */
+        }
+
+        #selection-results .table th:nth-child(5),
+        #selection-results .table td:nth-child(5) {
+            width: 200px; /* Increase width for 거래금액 */
+        }
+
+        #top-right-buttons {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 3;
+            display: flex;
+        }
+
+        .btn-custom {
+            background-color: rgba(0, 123, 255, 0.9);
+            color: white;
+            margin-left: 10px;
+        }
+
+        .btn-custom:first-child {
+            margin-left: 0;
+        }
+
+        .btn-custom.info-btn {
+            background-color: yellow;
+            color: black;
+        }
+
+        #profile-btn {
+            background-color: #6c757d;
+            color: white;
+            margin-right: 10px;
+            margin-left: 10px;
+        }
+
+        #signup-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        #logout-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        #signup-info-btn {
+            background-color: #e0e0e0; /* Slightly darker than white */
+            color: black;
+            margin-left: 10px;
+        }
+
+        #search-form, #selection-form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #search-input {
+            flex: 1;
+            margin-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 10px;
+        }
+
+        #header_nav_confirm_on {
+            display: none;
+        }
+
+        .btn-find-password {
+            background-color: #28a745;
+            color: white;
+            margin-right: 10px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .modal-footer .btn-danger {
+            margin-left: 10px;
+        }
+
+        #bottom-right-buttons {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 3;
+            display: flex;
+            flex-direction: row; /* 한 줄에 배치되도록 수정 */
+        }
+
+        #bottom-right-buttons .hospital-btn {
+            background-color: #14d04a; /* 민트색 */
+            color: white;
+            margin-right: 10px; /* 버튼 사이에 간격 추가 */
+        }
+
+        #bottom-right-buttons .subway-btn {
+            background-color: #6f42c1; /* 보라색 */
+            color: white;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="sidebar">
+        <!-- 탭 네비게이션 -->
+        <ul class="nav nav-tabs" id="myTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="select-tab" data-toggle="tab" href="#select" role="tab" aria-controls="select" aria-selected="false">지역 선택</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="search-tab" data-toggle="tab" href="#search" role="tab" aria-controls="search" aria-selected="true">관심 지역</a>
+            </li>
+            <li class="nav-item" style="display: none;">
+                <a class="nav-link" id="aptinfo-tab" data-toggle="tab" href="#aptinfo" role="tab" aria-controls="aptinfo" aria-selected="true">아파트 정보</a>
+            </li>
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <!-- 첫 번째 탭: 시도, 구군, 동 선택 -->
+            <div class="tab-pane fade show active" id="select" role="tabpanel" aria-labelledby="select-tab">
+                <h4>지역 선택</h4>
+                <form id="selection-form">
+                    <div class="form-group">
+                        <label for="sido-select">시도 선택</label>
+                        <select class="form-control" id="sido-select"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="gugun-select">구군 선택</label>
+                        <select class="form-control" id="gugun-select">
+                            <option value="">구군선택</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dong-select">동 선택</label>
+                        <select class="form-control" id="dong-select">
+                            <option value="">동선택</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="year-select">연도 선택</label>
+                        <select class="form-control" id="year-select">
+                            <option value="">연도선택</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="month-select">월 선택</label>
+                        <select class="form-control" id="month-select">
+                            <option value="">월선택</option>
+                        </select>
+                    </div>
+                    <div class="mb-4 text-right">
+                        <button type="button" class="btn btn-primary" id="selection-search-btn">검색</button>
+                        <button class="btn btn-primary" id="areaAddBtn" style="display: none;">관심 지역으로 추가</button>
+                    </div>
+                </form>
+                <div id="selection-results">
+                    <!-- 선택된 지역 정보가 여기에 표시됩니다. -->
+                    <table class="table table-hover text-center" style="display: none">
+                        <tr>
+                          <th>아파트이름</th>
+                          <th>층</th>
+                          <th>면적</th>
+                          <th>법정동</th>
+                          <th>거래금액</th>
+                        </tr>
+                        <tbody id="aptlist"></tbody>
+                      </table>
+                </div>
+            </div>
+            <!-- 두 번째 탭: 관심 지역 -->
+            <div class="tab-pane fade" id="search" role="tabpanel" aria-labelledby="search-tab">
+                <h4>관심 지역</h4>
+                <div class="container my-5">
+                    <!-- 관심지역 리스트 -->
+                    <div id="fav-list" class="list-group">
+                        <!-- 관심지역 항목이 여기에 추가됩니다. -->
+                    </div>
+            
+                    <!-- 관심 지역 테이블 -->
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>시/도</th>
+                                <th>군/구</th>
+                                <th>동</th>
+                                <th>작업</th>
+                            </tr>
+                        </thead>
+                        <tbody id="area-list">
+                            <!-- 관심 지역 항목이 여기에 추가됩니다. -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 세 번째 탭: 아파트 정보 -->
+            <div class="tab-pane fade" id="aptinfo" role="tabpanel" aria-labelledby="search-tab">
+                <h4>아파트 정보</h4>
+                <div class="container my-5">
+                    <!-- 아파트 정보 테이블 -->
+                    <table class="table table-hover text-center">
+                        <tr>
+                          <th>아파트이름</th>
+                          <th>층</th>
+                          <th>면적</th>
+                          <th>법정동</th>
+                          <th>거래금액</th>
+                        </tr>
+                        <tbody id="aptinfolist"></tbody>
+                      </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="top-right-buttons">
+        <button class="btn btn-custom info-btn" id="info-btn" onclick="location.href = './announce/announce.html'">공지사항</button>
+        <button class="btn btn-custom" id="signup-info-btn" data-toggle="modal" data-target="#aboutModal">About</button>
+        <button class="btn btn-custom" id="login-btn" data-toggle="modal" data-target="#loginModal" onclick="fillLoginForm()">로그인</button>
+        <button class="btn btn-custom" id="signup-btn" data-toggle="modal" data-target="#signupModal">회원가입</button>
+
+        <button class="btn" id="profile-btn" style="display: none;" onclick="openEditProfileModal()">회원정보</button>
+        <button class="btn" id="logout-btn" style="display: none;" onclick="logout()">로그아웃</button>
+    </div>
+
+    <div id="bottom-right-buttons">
+        <button class="btn btn-custom hospital-btn" onclick="showHospital()">병원</button>
+        <button class="btn btn-custom subway-btn" onclick="showSubways()">지하철</button>
+    </div>    
+
+    <div id="header_nav_confirm_on">
+        <img id="profile_img" src="" alt="Profile Image" style="width: 50px;">
+        <span>로그인 되었습니다.</span>
+    </div>
+
+    <!-- 로그인 모달 -->
+    <div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="loginModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="loginModalLabel">로그인</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="email">이메일 주소</label>
+                            <input type="email" class="form-control" id="email" placeholder="이메일을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">비밀번호</label>
+                            <input type="password" class="form-control" id="password" placeholder="비밀번호를 입력하세요">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-find-password" data-toggle="modal" data-target="#findPasswordModal">비밀번호 찾기</button>
+                            <button type="button" class="btn btn-primary" onclick="login()">로그인</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 비밀번호 찾기 모달 -->
+    <div class="modal fade" id="findPasswordModal" tabindex="-1" role="dialog" aria-labelledby="findPasswordModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="findPasswordModalLabel">비밀번호 찾기</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="find-password-form">
+                        <div class="form-group">
+                            <label for="find-name">이름</label>
+                            <input type="text" class="form-control" id="find-name" placeholder="이름을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="find-email">이메일 주소</label>
+                            <input type="email" class="form-control" id="find-email" placeholder="이메일을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="find-phone">전화번호</label>
+                            <input type="text" class="form-control" id="find-phone" placeholder="전화번호를 입력하세요">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="findPassword()">임시 비밀번호 발급</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원가입 모달 -->
+    <div class="modal fade" id="signupModal" tabindex="-1" role="dialog" aria-labelledby="signupModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="signupModalLabel">회원가입</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="signup-name">이름</label>
+                            <input type="text" class="form-control" id="signup-name" placeholder="이름을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-email">이메일 주소</label>
+                            <input type="email" class="form-control" id="signup-email" placeholder="이메일을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-password">비밀번호</label>
+                            <input type="password" class="form-control" id="signup-password" placeholder="비밀번호를 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-confirm-password">비밀번호 확인</label>
+                            <input type="password" class="form-control" id="signup-confirm-password" placeholder="비밀번호를 다시 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-address">주소</label>
+                            <input type="text" class="form-control" id="signup-address" placeholder="주소를 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-phone">전화번호</label>
+                            <input type="text" class="form-control" id="signup-phone" placeholder="전화번호를 입력하세요">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="submit" class="btn btn-primary">회원가입</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 회원 정보 수정 모달 -->
+    <div class="modal fade" id="editProfileModal" tabindex="-1" role="dialog" aria-labelledby="editProfileModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editProfileModalLabel">회원 정보 수정</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-profile-form">
+                        <div class="form-group">
+                            <label for="edit-email">이메일 주소</label>
+                            <input type="email" class="form-control" id="edit-email" placeholder="이메일을 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-password">비밀번호</label>
+                            <input type="password" class="form-control" id="edit-password" placeholder="비밀번호를 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-confirm-password">비밀번호 확인</label>
+                            <input type="password" class="form-control" id="edit-confirm-password" placeholder="비밀번호를 다시 입력하세요">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-address">주소</label>
+                            <input type="text" class="form-control" id="edit-address" value="대전광역시 유성구 덕명동">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-phone">전화번호</label>
+                            <input type="text" class="form-control" id="edit-phone" value="010-1234-5678">
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="updateProfile()">회원 정보 수정</button>
+                            <button type="button" class="btn btn-danger" onclick="deleteAccount()">회원 탈퇴</button>
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관심 지역 수정 모달 -->
+    <div class="modal fade" id="editAreaModal" tabindex="-1" role="dialog" aria-labelledby="editAreaModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAreaModalLabel">관심 지역 수정</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-area-form">
+                        <input type="hidden" id="edit-index">
+                        <div class="form-group">
+                            <label for="edit-province">시/도</label>
+                            <input type="text" class="form-control" id="edit-province" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-city">군/구</label>
+                            <input type="text" class="form-control" id="edit-city" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-dong">동</label>
+                            <input type="text" class="form-control" id="edit-dong" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">수정</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 관심 지역 삭제 확인 모달 -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1" role="dialog" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteConfirmModalLabel">삭제 확인</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>정말로 이 관심 지역을 삭제하시겠습니까?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">취소</button>
+                    <button type="button" class="btn btn-danger" id="confirm-delete">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="aboutModalLabel">About</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="container my-5">
+                        <!-- 사이트 소개 -->
+                        <section class="mb-5">
+                            <h2 class="mb-4">사이트 소개</h2>
+                            <p>우리의 아파트 매매 기록 조회 사이트는 사용자에게 다음과 같은 기능을 제공합니다:</p>
+                            <ul>
+                                <li><strong>매매 기록 검색:</strong> 원하는 지역과 기간에 따라 아파트 매매 기록을 검색할 수 있습니다.</li>
+                                <li><strong>상세 조회:</strong> 특정 아파트의 매매 내역과 상세 정보를 확인할 수 있습니다.</li>
+                                <li><strong>통계 제공:</strong> 아파트 시장의 동향과 통계를 시각화하여 제공합니다.</li>
+                                <li><strong>사용자 맞춤 기능:</strong> 사용자에게 맞춤형 알림과 추천 정보를 제공합니다.</li>
+                            </ul>
+                        </section>
+
+                        <!-- 사이트 기능 -->
+                        <section class="mb-5">
+                            <h2 class="mb-4">주요 기능</h2>
+                            <div class="row">
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">매매 기록 검색</h5>
+                                            <p class="card-text">다양한 검색 필터를 이용하여 매매 기록을 쉽고 빠르게 찾을 수 있습니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title">상세 조회</h5>
+                                            <p class="card-text">특정 아파트의 매매 기록을 자세히 조회하고, 관련 정보를 확인할 수 있습니다.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- 연락처 정보 -->
+                        <section>
+                            <h2 class="mb-4">연락처</h2>
+                            <p>저희 사이트에 대한 문의나 제안 사항이 있으시면 아래 연락처로 연락해 주시기 바랍니다:</p>
+                            <ul>
+                                <li><strong>이메일:</strong> contact@ssafy.com</li>
+                                <li><strong>전화:</strong> +82-10-1234-5678</li>
+                                <li><strong>주소:</strong> 대전광역시</li>
+                            </ul>
+                        </section>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
+    <script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey=dacee12a4342efbf5146c2cb3bb12d54&libraries=services"></script>
+    <script type="text/javascript" src="assets/js/map.js"></script>
+    <script type="text/javascript" src="assets/js/key.js"></script>
+    <script type="text/javascript" src="assets/js/user.js"></script>
+</body>
+</html>
